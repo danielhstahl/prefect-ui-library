@@ -73,7 +73,7 @@
       const { id: flows } = filter.flows
       const { id: deployments } = filter.deployments
 
-      const savedSearch = await api.savedSearches.createSavedSearch({
+      const savedSearch: SavedSearch | void = await api.savedSearches.createSavedSearch({
         name: filterName,
         filters: {
           state: state.name,
@@ -83,10 +83,17 @@
         },
       })
 
-      savedSearchesSubscription.refresh()
-      showToast(localization.success.createSavedSearch, 'success')
-      internalShowModal.value = false
-      emit('saved', savedSearch)
+
+      if (savedSearch) {
+        savedSearchesSubscription.refresh()
+        showToast(localization.success.createSavedSearch, 'success')
+        internalShowModal.value = false
+        emit('saved', savedSearch)
+      } else {
+        console.error('Read only')
+        showToast(localization.error.createSavedSearch, 'error')
+      }
+
     } catch (error) {
       console.error(error)
       showToast(localization.error.createSavedSearch, 'error')

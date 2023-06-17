@@ -3,12 +3,13 @@ import { SavedSearchesFilter } from '@/models/Filters'
 import { SavedSearch, SavedSearchCreate } from '@/models/SavedSearch'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
+import { isReadOnly } from '@/utilities/featureFlag'
 import { defaultSavesSearches } from '@/utilities/savedFilters'
-
+const READ_ONLY = isReadOnly()
 export interface IWorkspaceSavedSearchesApi {
   getSavedSearches: (filter: SavedSearchesFilter) => Promise<SavedSearch[]>,
   getSavedSearch: (searchId: string) => Promise<SavedSearch>,
-  createSavedSearch: (search: SavedSearchCreate) => Promise<SavedSearch>,
+  createSavedSearch: (search: SavedSearchCreate) => Promise<SavedSearch |void>,
   deleteSavedSearch: (searchId: string) => Promise<void>,
 }
 
@@ -29,7 +30,10 @@ export class WorkspaceSavedSearchesApi extends WorkspaceApi implements IWorkspac
     return mapper.map('SavedSearchResponse', data, 'SavedSearch')
   }
 
-  public async createSavedSearch(search: SavedSearchCreate): Promise<SavedSearch> {
+  public async createSavedSearch(search: SavedSearchCreate): Promise<SavedSearch | void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const request = mapper.map('SavedSearchCreate', search, 'SavedSearchCreateRequest')
 
     const { data } = await this.put<SavedSearchResponse>('/', request)
@@ -37,6 +41,9 @@ export class WorkspaceSavedSearchesApi extends WorkspaceApi implements IWorkspac
   }
 
   public deleteSavedSearch(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${id}`)
   }
 

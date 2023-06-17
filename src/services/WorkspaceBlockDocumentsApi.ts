@@ -7,11 +7,12 @@ import { BatchProcessor } from '@/services/BatchProcessor'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
 import { toMap } from '@/utilities'
-
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 export interface IWorkspaceBlockDocumentsApi {
   getBlockDocument: (blockDocumentId: string) => Promise<BlockDocument>,
   getBlockDocuments: (filter: BlockDocumentsFilter) => Promise<BlockDocument[]>,
-  createBlockDocument: (blockDocument: BlockDocumentCreate) => Promise<BlockDocument>,
+  createBlockDocument: (blockDocument: BlockDocumentCreate) => Promise<BlockDocument|void>,
   updateBlockDocument: (blockDocumentId: string, blockDocument: BlockDocumentUpdate) => Promise<void>,
   deleteBlockDocument: (blockDocumentId: string) => Promise<void>,
 }
@@ -42,19 +43,29 @@ export class WorkspaceBlockDocumentsApi extends WorkspaceApi implements IWorkspa
     return mapper.map('BlockDocumentResponse', data, 'BlockDocument')
   }
 
-  public async createBlockDocument(blockDocument: BlockDocumentCreate): Promise<BlockDocument> {
+  public async createBlockDocument(blockDocument: BlockDocumentCreate): Promise<BlockDocument|void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const { data } = await this.post<BlockDocumentResponse>('/', mapper.map('BlockDocumentCreate', blockDocument, 'BlockDocumentCreateRequest'))
 
     return mapper.map('BlockDocumentResponse', data, 'BlockDocument')
   }
 
   public updateBlockDocument(blockDocumentId: string, blockDocument: BlockDocumentUpdate): Promise<void> {
+
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const request = mapper.map('BlockDocumentUpdate', { mergeExistingData: false, ...blockDocument }, 'BlockDocumentUpdateRequest')
 
     return this.patch(`/${blockDocumentId}`, request)
   }
 
   public deleteBlockDocument(blockDocumentId: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${blockDocumentId}`)
   }
 

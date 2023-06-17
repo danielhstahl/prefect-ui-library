@@ -20,7 +20,7 @@
   import { WorkPoolCreateWizardStepInformation, WorkPoolCreateWizardStepInfrastructureType, WorkPoolCreateWizardStepInfrastructureConfiguration } from '@/components'
   import { useWorkspaceApi, useWorkspaceRoutes } from '@/compositions'
   import { localization } from '@/localization'
-  import { WorkPoolCreate, WorkPoolFormValues } from '@/models'
+  import { WorkPool, WorkPoolCreate, WorkPoolFormValues } from '@/models'
 
   const router = useRouter()
   const routes = useWorkspaceRoutes()
@@ -54,10 +54,16 @@
     }
 
     try {
-      const { name } = await api.workPools.createWorkPool(values)
-      showToast(localization.success.createWorkPool, 'success')
+      const workPool: WorkPool|void = await api.workPools.createWorkPool(values)
+      if (workPool) {
+        showToast(localization.success.createWorkPool, 'success')
 
-      router.push(routes.workPool(name))
+        router.push(routes.workPool(workPool.name))
+      } else {
+        showToast(localization.error.createWorkPool, 'error')
+        console.error('Read only')
+      }
+
     } catch (error) {
       showToast(localization.error.createWorkPool, 'error')
       console.error(error)

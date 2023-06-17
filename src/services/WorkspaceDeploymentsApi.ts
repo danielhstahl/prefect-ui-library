@@ -9,12 +9,13 @@ import { BatchProcessor } from '@/services/BatchProcessor'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
 import { toMap } from '@/utilities/arrays'
-
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 export interface IWorkspaceDeploymentsApi {
   getDeployment: (deploymentId: string) => Promise<Deployment>,
   getDeployments: (filter: DeploymentsFilter) => Promise<Deployment[]>,
   getDeploymentsCount: (filter: DeploymentsFilter) => Promise<number>,
-  createDeploymentFlowRun: (deploymentId: string, request: DeploymentFlowRunCreate) => Promise<FlowRun>,
+  createDeploymentFlowRun: (deploymentId: string, request: DeploymentFlowRunCreate) => Promise<FlowRun|void>,
   updateDeployment: (deploymentId: string, request: DeploymentUpdate) => Promise<void>,
   pauseDeployment: (deploymentId: string) => Promise<void>,
   resumeDeployment: (deploymentId: string) => Promise<void>,
@@ -53,7 +54,10 @@ export class WorkspaceDeploymentsApi extends WorkspaceApi implements IWorkspaceD
     return data
   }
 
-  public async createDeploymentFlowRun(deploymentId: string, request: DeploymentFlowRunCreate): Promise<FlowRun> {
+  public async createDeploymentFlowRun(deploymentId: string, request: DeploymentFlowRunCreate): Promise<FlowRun|void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('DeploymentFlowRunCreate', request, 'DeploymentFlowRunRequest')
     const { data } = await this.post<FlowRunResponse>(`/${deploymentId}/create_flow_run`, body)
 
@@ -61,20 +65,32 @@ export class WorkspaceDeploymentsApi extends WorkspaceApi implements IWorkspaceD
   }
 
   public updateDeployment(deploymentId: string, request: DeploymentUpdate): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('DeploymentUpdate', request, 'DeploymentUpdateRequest')
 
     return this.patch(`/${deploymentId}`, body)
   }
 
   public pauseDeployment(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.post(`/${id}/set_schedule_inactive`)
   }
 
   public resumeDeployment(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.post(`/${id}/set_schedule_active`)
   }
 
   public deleteDeployment(deploymentId: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${deploymentId}`)
   }
 }

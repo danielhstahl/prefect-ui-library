@@ -26,6 +26,7 @@
   import { useForm } from '@/compositions/useForm'
   import { localization } from '@/localization'
   import { Deployment, DeploymentFlowRunCreate } from '@/models'
+  import { FlowRun } from '@/models/FlowRun'
   import { SchemaValues } from '@/types/schemas'
 
   const props = defineProps<{
@@ -73,10 +74,14 @@
 
   async function createDeploymentFlowRun(deploymentId: string, value: DeploymentFlowRunCreate): Promise<void> {
     try {
-      const flowRun = await api.deployments.createDeploymentFlowRun(deploymentId, value)
-
-      const toastMessage = h(ToastFlowRunCreate, { flowRun, flowRunRoute: routes.flowRun, router, immediate: true })
-      showToast(toastMessage, 'success')
+      const flowRun: FlowRun | void = await api.deployments.createDeploymentFlowRun(deploymentId, value)
+      if (flowRun) {
+        const toastMessage = h(ToastFlowRunCreate, { flowRun, flowRunRoute: routes.flowRun, router, immediate: true })
+        showToast(toastMessage, 'success')
+      } else {
+        console.error('Read only!')
+        showToast(localization.error.scheduleFlowRun, 'error')
+      }
     } catch (error) {
       showToast(localization.error.scheduleFlowRun, 'error')
       console.error(error)

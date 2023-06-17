@@ -198,7 +198,7 @@
           blockSchema: blockSchema.value,
           data: data.value,
         })
-        blockDocumentId.value = newBlockDocument.id
+        blockDocumentId.value = newBlockDocument?.id
       }
       const notification = { ...values, blockDocumentId: blockDocumentId.value }
 

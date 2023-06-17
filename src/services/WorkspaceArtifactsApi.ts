@@ -6,7 +6,8 @@ import { BatchProcessor } from '@/services/BatchProcessor'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
 import { toMap } from '@/utilities'
-
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 export interface IWorkspaceArtifactsApi {
   getArtifact: (id: string) => Promise<Artifact>,
   getArtifacts: (filter: ArtifactsFilter) => Promise<Artifact[]>,
@@ -64,6 +65,9 @@ export class WorkspaceArtifactsApi extends WorkspaceApi implements IWorkspaceArt
   }
 
   public deleteArtifact(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${id}`)
   }
 }

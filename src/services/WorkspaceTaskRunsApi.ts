@@ -8,6 +8,8 @@ import { BatchProcessor } from '@/services/BatchProcessor'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
 import { toMap } from '@/utilities'
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 
 export interface IWorkspaceTaskRunsApi {
   getTaskRun: (taskRunId: string) => Promise<TaskRun>,
@@ -50,12 +52,18 @@ export class WorkspaceTaskRunsApi extends WorkspaceApi implements IWorkspaceTask
   }
 
   public setTaskRunState(id: string, body: StateUpdate): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const requestBody = mapper.map('StateUpdate', body, 'StateUpdateRequest')
 
     return this.post(`/${id}/set_state`, { state: requestBody.state, force: true })
   }
 
   public deleteTaskRun(taskRunId: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${taskRunId}`)
   }
 

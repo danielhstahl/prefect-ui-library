@@ -11,6 +11,8 @@ import { BatchProcessor } from '@/services/BatchProcessor'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
 import { toMap } from '@/utilities'
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 
 export interface IWorkspaceFlowRunsApi {
   getFlowRun: (flowRunId: string) => Promise<FlowRun>,
@@ -77,6 +79,9 @@ export class WorkspaceFlowRunsApi extends WorkspaceApi implements IWorkspaceFlow
   }
 
   public retryFlowRun(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.setFlowRunState(id, {
       state: {
         type: 'scheduled',
@@ -87,15 +92,24 @@ export class WorkspaceFlowRunsApi extends WorkspaceApi implements IWorkspaceFlow
   }
 
   public setFlowRunState(id: string, body: StateUpdate): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const requestBody = mapper.map('StateUpdate', body, 'StateUpdateRequest')
     return this.post(`/${id}/set_state`, { state: requestBody.state, force: true })
   }
 
   public resumeFlowRun(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.post(`/${id}/resume`)
   }
 
   public deleteFlowRun(flowRunId: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${flowRunId}`)
   }
 }

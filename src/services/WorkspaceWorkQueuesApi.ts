@@ -5,12 +5,13 @@ import { BatchProcessor } from '@/services/BatchProcessor'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
 import { toMap } from '@/utilities'
-
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 export interface IWorkspaceWorkQueuesApi {
   getWorkQueue: (workQueueId: string) => Promise<WorkQueue>,
   getWorkQueueByName: (workQueueName: string) => Promise<WorkQueue>,
   getWorkQueues: (filter: WorkQueuesFilter) => Promise<WorkQueue[]>,
-  createWorkQueue: (request: WorkQueueCreate) => Promise<WorkQueue>,
+  createWorkQueue: (request: WorkQueueCreate) => Promise<WorkQueue|void>,
   pauseWorkQueue: (workQueueId: string) => Promise<void>,
   resumeWorkQueue: (workQueueId: string) => Promise<void>,
   updateWorkQueue: (workQueueId: string, request: WorkQueueEdit) => Promise<void>,
@@ -58,7 +59,10 @@ export class WorkspaceWorkQueuesApi extends WorkspaceApi implements IWorkspaceWo
     return mapper.map('WorkQueueResponse', data, 'WorkQueue')
   }
 
-  public async createWorkQueue(request: WorkQueueCreate): Promise<WorkQueue> {
+  public async createWorkQueue(request: WorkQueueCreate): Promise<WorkQueue | void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('WorkQueueCreate', request, 'WorkQueueCreateRequest')
     const { data } = await this.post<WorkQueueResponse>('/', body)
 
@@ -66,20 +70,32 @@ export class WorkspaceWorkQueuesApi extends WorkspaceApi implements IWorkspaceWo
   }
 
   public pauseWorkQueue(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.patch(`/${id}`, { 'is_paused': true })
   }
 
   public resumeWorkQueue(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.patch(`/${id}`, { 'is_paused': false })
   }
 
   public updateWorkQueue(id: string, request: WorkQueueEdit): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('WorkQueueEdit', request, 'WorkQueueEditRequest')
 
     return this.patch(`/${id}`, body)
   }
 
   public deleteWorkQueue(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${id}`)
   }
 

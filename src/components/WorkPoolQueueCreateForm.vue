@@ -45,6 +45,7 @@
   import { SubmitButton, WorkPoolQueuePriorityLabel } from '@/components'
   import { useWorkspaceApi, useWorkspaceRoutes } from '@/compositions'
   import { localization } from '@/localization'
+  import { WorkPoolQueue } from '@/models'
 
   const props = defineProps<{
     workPoolName: string,
@@ -93,10 +94,15 @@
     }
 
     try {
-      const { name } = await api.workPoolQueues.createWorkPoolQueue(props.workPoolName, values)
-      showToast(localization.success.createWorkPoolQueue, 'success')
+      const workPoolQueue: WorkPoolQueue| void = await api.workPoolQueues.createWorkPoolQueue(props.workPoolName, values)
+      if (workPoolQueue) {
+        showToast(localization.success.createWorkPoolQueue, 'success')
 
-      router.push(routes.workPoolQueue(props.workPoolName, name))
+        router.push(routes.workPoolQueue(props.workPoolName, workPoolQueue.name))
+      } else {
+        showToast(localization.error.createWorkPoolQueue, 'error')
+        console.error('Read only')
+      }
     } catch (error) {
       showToast(localization.error.createWorkPoolQueue, 'error')
       console.error(error)

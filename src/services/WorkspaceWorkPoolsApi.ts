@@ -1,9 +1,11 @@
 import { WorkPool, WorkPoolCreate, WorkPoolEdit, WorkPoolResponse, WorkerScheduledFlowRunResponse, WorkerScheduledFlowRun, WorkerScheduledFlowRuns } from '@/models'
 import { WorkPoolsFilter } from '@/models/Filters'
 import { mapper, WorkspaceApi } from '@/services'
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 
 export interface IWorkspaceWorkPoolsApi {
-  createWorkPool: (request: WorkPoolCreate) => Promise<WorkPool>,
+  createWorkPool: (request: WorkPoolCreate) => Promise<WorkPool|void>,
   getWorkPoolByName: (workPoolName: string) => Promise<WorkPool>,
   getWorkPools: (filter: WorkPoolsFilter) => Promise<WorkPool[]>,
   updateWorkPool: (workPoolName: string, request: WorkPoolEdit) => Promise<void>,
@@ -18,7 +20,10 @@ export class WorkspaceWorkPoolsApi extends WorkspaceApi implements IWorkspaceWor
 
   protected override routePrefix = '/work_pools/'
 
-  public async createWorkPool(request: WorkPoolCreate): Promise<WorkPool> {
+  public async createWorkPool(request: WorkPoolCreate): Promise<WorkPool|void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('WorkPoolCreate', request, 'WorkPoolCreateRequest')
     const { data } = await this.post<WorkPoolResponse>('/', body)
 
@@ -39,20 +44,32 @@ export class WorkspaceWorkPoolsApi extends WorkspaceApi implements IWorkspaceWor
   }
 
   public updateWorkPool(name: string, request: WorkPoolEdit): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('WorkPoolEdit', request, 'WorkPoolEditRequest')
 
     return this.patch(`/${name}`, body)
   }
 
   public pauseWorkPool(name: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.patch(`/${name}`, { 'is_paused': true })
   }
 
   public resumeWorkPool(name: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.patch(`/${name}`, { 'is_paused': false })
   }
 
   public deleteWorkPool(name: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${name}`)
   }
 

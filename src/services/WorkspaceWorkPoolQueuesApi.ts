@@ -1,9 +1,11 @@
 import { WorkPoolQueueCreate, WorkPoolQueue, WorkPoolQueueEdit, WorkPoolQueueResponse } from '@/models'
 import { WorkPoolQueuesFilter } from '@/models/Filters'
 import { mapper, WorkspaceApi } from '@/services'
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 
 export interface IWorkspaceWorkPoolQueuesApi {
-  createWorkPoolQueue: (workPoolName: string, request: WorkPoolQueueCreate) => Promise<WorkPoolQueue>,
+  createWorkPoolQueue: (workPoolName: string, request: WorkPoolQueueCreate) => Promise<WorkPoolQueue|void>,
   getWorkPoolQueues: (workPoolName: string, filter: WorkPoolQueuesFilter) => Promise<WorkPoolQueue[]>,
   getWorkPoolQueueByName: (workPoolName: string, queueName: string) => Promise<WorkPoolQueue>,
   updateWorkPoolQueue: (workPoolName: string, queueName: string, request: WorkPoolQueueCreate) => Promise<void>,
@@ -16,7 +18,10 @@ export class WorkspaceWorkPoolQueuesApi extends WorkspaceApi implements IWorkspa
 
   protected override routePrefix = '/work_pools/'
 
-  public async createWorkPoolQueue(workPoolName: string, request: WorkPoolQueueCreate): Promise<WorkPoolQueue> {
+  public async createWorkPoolQueue(workPoolName: string, request: WorkPoolQueueCreate): Promise<WorkPoolQueue|void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('WorkPoolQueueCreate', request, 'WorkPoolQueueCreateRequest')
 
     const { data } = await this.post<WorkPoolQueueResponse>(`/${workPoolName}/queues`, body)
@@ -38,24 +43,39 @@ export class WorkspaceWorkPoolQueuesApi extends WorkspaceApi implements IWorkspa
   }
 
   public updateWorkPoolQueue(workPoolName: string, queueName: string, request: WorkPoolQueueEdit): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const body = mapper.map('WorkPoolQueueEdit', request, 'WorkPoolQueueEditRequest')
 
     return this.patch(`/${workPoolName}/queues/${queueName}`, body)
   }
 
   public pauseWorkPoolQueue(workPoolName: string, queueName: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.patch(`/${workPoolName}/queues/${queueName}`, { 'is_paused': true })
   }
 
   public resumeWorkPoolQueue(workPoolName: string, queueName: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.patch(`/${workPoolName}/queues/${queueName}`, { 'is_paused': false })
   }
 
   public deleteWorkPoolQueue(workPoolName: string, queueName: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${workPoolName}/queues/${queueName}`)
   }
 
   public updateWorkPoolQueuePriority(workPoolName: string, queueName: string, priority: number): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.patch(`/${workPoolName}/queues/${queueName}/update_priority`, { priority })
   }
 }

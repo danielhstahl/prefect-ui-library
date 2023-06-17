@@ -4,6 +4,8 @@ import { ConcurrencyLimitCreate } from '@/models/ConcurrencyLimitCreate'
 import { ConcurrencyLimitsFilter } from '@/models/Filters'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 
 export interface IWorkspaceConcurrencyLimitsApi {
   getConcurrencyLimit: (concurrencyLimitId: string) => Promise<ConcurrencyLimit>,
@@ -34,16 +36,25 @@ export class WorkspaceConcurrencyLimitsApi extends WorkspaceApi {
     return mapper.map('ConcurrencyLimitResponse', data, 'ConcurrencyLimit')
   }
 
-  public async createConcurrencyLimit(limit: ConcurrencyLimitCreate): Promise<ConcurrencyLimit> {
+  public async createConcurrencyLimit(limit: ConcurrencyLimitCreate): Promise<ConcurrencyLimit | void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const { data } = await this.post<ConcurrencyLimitResponse>('/', mapper.map('ConcurrencyLimitCreate', limit, 'ConcurrencyLimitCreateRequest'))
     return mapper.map('ConcurrencyLimitResponse', data, 'ConcurrencyLimit')
   }
 
   public deleteConcurrencyLimit(id: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${id}`)
   }
 
   public deleteConcurrencyLimitByTag(tag: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/tag/${tag}`)
   }
 

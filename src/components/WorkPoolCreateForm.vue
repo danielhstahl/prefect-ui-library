@@ -53,7 +53,7 @@
   import { SubmitButton, WorkPoolTypeSelect, WorkPoolBaseJobTemplateFormSection } from '@/components'
   import { useCan, useWorkspaceApi, useWorkspaceRoutes } from '@/compositions'
   import { localization } from '@/localization'
-  import { WorkPoolCreate } from '@/models'
+  import { WorkPool, WorkPoolCreate } from '@/models'
   import { WorkerBaseJobTemplate } from '@/types'
 
   const api = useWorkspaceApi()
@@ -119,10 +119,14 @@
       }
 
       try {
-        const { name } = await api.workPools.createWorkPool(values)
-        showToast(localization.success.createWorkPool, 'success')
-
-        router.push(routes.workPool(name))
+        const workPool: WorkPool | void = await api.workPools.createWorkPool(values)
+        if (workPool) {
+          showToast(localization.success.createWorkPool, 'success')
+          router.push(routes.workPool(workPool.name))
+        } else {
+          showToast(localization.error.createWorkPool, 'error')
+          console.error('Read only')
+        }
       } catch (error) {
         showToast(localization.error.createWorkPool, 'error')
         console.error(error)

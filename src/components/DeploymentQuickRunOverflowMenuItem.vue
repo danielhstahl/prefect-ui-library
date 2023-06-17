@@ -14,7 +14,7 @@
   import { useWorkspaceApi, useWorkspaceRoutes } from '@/compositions'
   import { localization } from '@/localization'
   import { Deployment } from '@/models'
-
+  import { FlowRun } from '@/models/FlowRun'
   const props = defineProps<{
     deployment: Deployment,
     openModal: () => void,
@@ -29,20 +29,28 @@
       props.openModal()
     } else {
       try {
-        const flowRun = await api.deployments.createDeploymentFlowRun(props.deployment.id, {
+
+
+        const flowRun: FlowRun|void = await api.deployments.createDeploymentFlowRun(props.deployment.id, {
           state: {
             type: 'scheduled',
             message: 'Run from the Prefect UI with defaults',
           },
         })
+        if (flowRun) {
+          const toastMessage = h(ToastFlowRunCreate, {
+            flowRun,
+            flowRunRoute: routes.flowRun,
+            router,
+            immediate: true,
+          })
+          showToast(toastMessage, 'success')
+        } else {
+          console.error('Read only!')
+          showToast(localization.error.scheduleFlowRun, 'error')
+        }
 
-        const toastMessage = h(ToastFlowRunCreate, {
-          flowRun,
-          flowRunRoute: routes.flowRun,
-          router,
-          immediate: true,
-        })
-        showToast(toastMessage, 'success')
+
       } catch (error) {
         showToast(localization.error.scheduleFlowRun, 'error')
         console.error(error)

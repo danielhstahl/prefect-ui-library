@@ -2,14 +2,16 @@ import { Variable, VariableCreate, VariableEdit, VariablesFilter } from '@/model
 import { VariableResponse } from '@/models/api/VariableResponse'
 import { mapper } from '@/services'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 
 export interface IWorkspaceVariablesApi {
   getVariables: (filter: VariablesFilter) => Promise<Variable[]>,
   getVariablesCount: (filter: VariablesFilter) => Promise<number>,
   getVariable: (variableId: string) => Promise<Variable>,
   getVariableByName: (variableName: string) => Promise<Variable | null>,
-  createVariable: (body: VariableCreate) => Promise<Variable>,
-  editVariable: (variableId: string, body: VariableEdit) => Promise<Variable>,
+  createVariable: (body: VariableCreate) => Promise<Variable|void>,
+  editVariable: (variableId: string, body: VariableEdit) => Promise<Variable|void>,
   deleteVariable: (variableId: string) => Promise<void>,
 }
 
@@ -42,13 +44,19 @@ export class WorkspaceVariablesApi extends WorkspaceApi implements IWorkspaceVar
     return data
   }
 
-  public async createVariable(body: VariableCreate): Promise<Variable> {
+  public async createVariable(body: VariableCreate): Promise<Variable | void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const requestBody = mapper.map('VariableCreate', body, 'VariableCreateRequest')
     const { data } = await this.post<VariableResponse>('/', requestBody)
     return mapper.map('VariableResponse', data, 'Variable')
   }
 
-  public async editVariable(variableId: string, body: VariableEdit): Promise<Variable> {
+  public async editVariable(variableId: string, body: VariableEdit): Promise<Variable | void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     const requestBody = mapper.map('VariableEdit', body, 'VariableEditRequest')
     const { data } = await this.patch<VariableResponse>(`/${variableId}`, requestBody)
 
@@ -56,6 +64,9 @@ export class WorkspaceVariablesApi extends WorkspaceApi implements IWorkspaceVar
   }
 
   public deleteVariable(variableId: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${variableId}`)
   }
 }

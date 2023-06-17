@@ -4,6 +4,8 @@ import { BatchProcessor } from '@/services/BatchProcessor'
 import { mapper } from '@/services/Mapper'
 import { WorkspaceApi } from '@/services/WorkspaceApi'
 import { toMap } from '@/utilities'
+import { isReadOnly } from '@/utilities/featureFlag'
+const READ_ONLY = isReadOnly()
 
 export interface IWorkspaceFlowsApi {
   getFlow: (flowId: string) => Promise<Flow>,
@@ -45,6 +47,9 @@ export class WorkspaceFlowsApi extends WorkspaceApi implements IWorkspaceFlowsAp
   }
 
   public deleteFlow(flowId: string): Promise<void> {
+    if (READ_ONLY) {
+      return Promise.resolve()
+    }
     return this.delete(`/${flowId}`)
   }
 

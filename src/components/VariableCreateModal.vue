@@ -118,12 +118,16 @@
           tags: tags.value,
         }
 
-        const variable = await api.variables.createVariable(values)
-
-        showToast(localization.success.createVariable, 'success')
-        emit('create', variable)
-        internalValue.value = false
-        reset()
+        const variable: Variable | void = await api.variables.createVariable(values)
+        if (variable) {
+          showToast(localization.success.createVariable, 'success')
+          emit('create', variable)
+          internalValue.value = false
+          reset()
+        } else {
+          console.error('Read only')
+          showToast(localization.error.createVariable, 'error')
+        }
       } catch (error) {
         console.error(error)
         showToast(localization.error.createVariable, 'error')

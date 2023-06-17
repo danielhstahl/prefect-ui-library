@@ -118,11 +118,16 @@
           tags: tags.value,
         }
 
-        const variable = await api.variables.editVariable(props.variable.id, values)
+        const variable: Variable | void = await api.variables.editVariable(props.variable.id, values)
 
-        showToast(localization.success.editVariable, 'success')
-        internalValue.value = false
-        emit('update', variable)
+        if (variable) {
+          showToast(localization.success.editVariable, 'success')
+          internalValue.value = false
+          emit('update', variable)
+        } else {
+          console.error('Read only')
+          showToast(localization.error.editVariable, 'error')
+        }
       } catch (error) {
         console.error(error)
         showToast(localization.error.editVariable, 'error')

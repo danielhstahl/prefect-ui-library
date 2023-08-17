@@ -3,15 +3,14 @@
 </template>
 
 <script lang="ts" setup>
-  import { useSubscription } from '@prefecthq/vue-compositions'
-  import { computed } from 'vue'
-  import { useWorkspaceApi } from '@/compositions'
+  import { computed, toRefs } from 'vue'
+  import { useFlowRuns } from '@/compositions'
   import { FlowRunsFilter } from '@/models/Filters'
 
   const props = defineProps<{
     selected: string[] | null | undefined,
     emptyMessage?: string,
-    filter: FlowRunsFilter,
+    filter?: FlowRunsFilter,
   }>()
 
   const emits = defineEmits<{
@@ -27,10 +26,8 @@
     },
   })
 
-  const api = useWorkspaceApi()
-
-  const flowRunsSubscription = useSubscription(api.flowRuns.getFlowRuns, [props.filter])
-  const flowRuns = computed(() => flowRunsSubscription.response ?? [])
+  const { filter } = toRefs(props)
+  const { flowRuns } = useFlowRuns(filter)
   const tagList = computed(() => flowRuns.value.flatMap(run => run.tags ?? []))
   const options = computed(() => [...new Set(tagList.value)])
 </script>

@@ -1,11 +1,9 @@
 import { JsonInput } from '@/components'
 import { InvalidSchemaValueError } from '@/models'
-import { schemaPropertyServiceFactory } from '@/services/schemas/properties'
 import { SchemaPropertyService } from '@/services/schemas/properties/SchemaPropertyService'
-import { SchemaPropertyComponentWithProps } from '@/services/schemas/utilities'
+import { SchemaPropertyComponentWithProps, getSchemaPropertyRequestValue, getSchemaPropertyResponseValue } from '@/services/schemas/utilities'
 import { SchemaValue, isSchemaValues, SchemaValues } from '@/types/schemas'
-import { isEmptyObject, isNullish, mapValues } from '@/utilities'
-import { parseUnknownJson, stringifyUnknownJson } from '@/utilities/json'
+import { isEmptyObject, isNullish, mapValues, parseUnknownJson, stringifyUnknownJson } from '@/utilities'
 
 export class SchemaPropertyObject extends SchemaPropertyService {
 
@@ -36,9 +34,7 @@ export class SchemaPropertyObject extends SchemaPropertyService {
 
     const mapped = mapValues(this.property.properties ?? {}, (key, property) => {
       const propertyValue = value[key]
-      const service = schemaPropertyServiceFactory(property!, this.level + 1)
-
-      return service.mapRequestValue(propertyValue)
+      return getSchemaPropertyRequestValue(property!, propertyValue, this.level + 1)
     })
 
     if (isEmptyObject(mapped)) {
@@ -63,9 +59,7 @@ export class SchemaPropertyObject extends SchemaPropertyService {
 
     return mapValues(this.property.properties ?? {}, (key, property) => {
       const propertyValue = parsed[key]
-      const service = schemaPropertyServiceFactory(property!, this.level + 1)
-
-      return service.mapResponseValue(propertyValue)
+      return getSchemaPropertyResponseValue(property!, propertyValue, this.level + 1)
     })
   }
 }

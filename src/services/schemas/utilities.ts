@@ -1,10 +1,11 @@
 import { JsonInput } from '@/components'
-import { isRecord } from '@/index'
 import { isBlockDocumentReferenceValue, isBlockDocumentValue } from '@/models'
 import { schemaPropertyServiceFactory } from '@/services/schemas/properties'
 import { SchemaProperty, SchemaPropertyInputAttrs, Schema, SchemaValues, SchemaValue, schemaHas, SchemaPropertyAnyOf, SchemaPropertyAllOf } from '@/types/schemas'
 import { withPropsWithoutExcludedFactory } from '@/utilities/components'
-import { parseUnknownJson, stringify } from '@/utilities/json'
+import { stringify } from '@/utilities/json'
+import { isRecord } from '@/utilities/object'
+import { parseUnknownJson } from '@/utilities/parseUnknownJson'
 import { isGreaterThan, isGreaterThanOrEqual, isLessThan, isLessThanOrEqual, isRequired, fieldRules, ValidationMethod, ValidationMethodFactory } from '@/utilities/validation'
 
 export type SchemaPropertyComponentWithProps = ReturnType<typeof schemaPropertyComponentWithProps> | null
@@ -52,8 +53,8 @@ export function getSchemaRequestValue(schema: Schema, values: SchemaValues): Sch
 /*
  * Gets a UI friendly version of a property's api friendly value. Used for mapping.
  */
-export function getSchemaPropertyResponseValue(property: SchemaProperty, value: SchemaValue): SchemaValue {
-  const service = schemaPropertyServiceFactory(property, 0)
+export function getSchemaPropertyResponseValue(property: SchemaProperty, value: SchemaValue, level: number = 0): SchemaValue {
+  const service = schemaPropertyServiceFactory(property, level)
 
   return service.mapResponseValue(value)
 }
@@ -61,8 +62,8 @@ export function getSchemaPropertyResponseValue(property: SchemaProperty, value: 
 /*
  * Gets a api friendly version of a property's UI friendly value. Used for mapping.
  */
-export function getSchemaPropertyRequestValue(property: SchemaProperty, value: SchemaValue): SchemaValue {
-  const service = schemaPropertyServiceFactory(property, 0)
+export function getSchemaPropertyRequestValue(property: SchemaProperty, value: SchemaValue, level: number = 0): SchemaValue {
+  const service = schemaPropertyServiceFactory(property, level)
 
   return service.mapRequestValue(value)
 }
@@ -195,7 +196,7 @@ export function getSchemaValueAnyOfDefinition(property: SchemaPropertyAnyOf, val
   const index = getSchemaValueAnyOfDefinitionIndex(property, value)
 
   if (index === null || index === -1) {
-    console.warn('Schema property with anyOf had a value but could not be associated with a definition')
+    console.log('Schema property with anyOf had a value but could not be associated with a definition', property, value)
 
     return null
   }
@@ -214,7 +215,7 @@ export function getSchemaValueAllOfDefinition(property: SchemaPropertyAllOf, val
   const index = getSchemaValueAllOfDefinitionIndex(property, value)
 
   if (index === null || index === -1) {
-    console.warn('Schema property with allOf had a value but could not be associated with a definition')
+    console.log('Schema property with allOf had a value but could not be associated with a definition', property, value)
 
     return null
   }

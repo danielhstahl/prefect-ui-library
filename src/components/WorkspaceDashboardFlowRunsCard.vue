@@ -4,31 +4,33 @@
       <p-heading heading="5">
         Flow Runs
       </p-heading>
-      <DashboardStatistic label="total" :value="flowRunsCount" />
+      <template v-if="count">
+        <StatisticKeyValue label="total" :value="count" />
+      </template>
     </header>
-    <div class="grid gap-2 grid-cols-1">
-      <FlowRunsBarChart class="workspace-dashboard-flow-runs-card__chart" :filter="flowRunsFilter" />
-    </div>
+    <FlowRunsBarChart class="workspace-dashboard-flow-runs-card__chart" :filter="flowRunsFilter" />
+    <FlowRunStateTypeTabs :filter="flowRunsFilter" />
   </p-card>
 </template>
 
 <script lang="ts" setup>
-  import { useSubscription } from '@prefecthq/vue-compositions'
-  import { computed } from 'vue'
-  import DashboardStatistic from '@/components/DashboardStatistic.vue'
   import FlowRunsBarChart from '@/components/FlowRunsBarChart.vue'
-  import { useWorkspaceApi } from '@/compositions/useWorkspaceApi'
+  import FlowRunStateTypeTabs from '@/components/FlowRunStateTypeTabs.vue'
+  import StatisticKeyValue from '@/components/StatisticKeyValue.vue'
+  import { useFlowRunsCount } from '@/compositions/useFlowRunsCount'
+  import { useInterval } from '@/compositions/useInterval'
+  import { FlowRunsFilter } from '@/models/Filters'
   import { mapper } from '@/services/Mapper'
   import { WorkspaceDashboardFilter } from '@/types/dashboard'
+  import { Getter } from '@/types/reactivity'
 
   const props = defineProps<{
     filter: WorkspaceDashboardFilter,
   }>()
 
-  const flowRunsFilter = computed(() => mapper.map('WorkspaceDashboardFilter', props.filter, 'FlowRunsFilter'))
-  const api = useWorkspaceApi()
-  const flowRunsCountSubscription = useSubscription(api.flowRuns.getFlowRunsCount, [flowRunsFilter])
-  const flowRunsCount = computed(() => flowRunsCountSubscription.response ?? 0)
+  const options = useInterval()
+  const flowRunsFilter: Getter<FlowRunsFilter> = () => mapper.map('WorkspaceDashboardFilter', props.filter, 'FlowRunsFilter')
+  const { count } = useFlowRunsCount(flowRunsFilter, options)
 </script>
 
 <style>

@@ -22,6 +22,7 @@
           :flow-run-state="flowRun.stateType"
         />
       </template>
+      <slot name="after" :flow-run="flowRun" />
     </StateListItem>
   </div>
 </template>
@@ -65,8 +66,11 @@
   const tags = computed(() => props.flowRun.tags)
   const value = computed(() => props.flowRun.id)
 
-  const flowRunId = computed(() => props.flowRun.id)
-  const { taskRunsCount } = useTaskRunsCount(flowRunId)
+  const { count: taskRunsCount } = useTaskRunsCount(() => ({
+    flowRuns: {
+      id: [props.flowRun.id],
+    },
+  }))
 
   const visible = ref(false)
   const el = ref<HTMLDivElement>()

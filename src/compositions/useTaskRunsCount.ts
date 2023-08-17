@@ -1,42 +1,47 @@
-import { useSubscriptionWithDependencies } from '@prefecthq/vue-compositions'
-import { computed, Ref, ref } from 'vue'
+import { SubscriptionOptions, useSubscriptionWithDependencies } from '@prefecthq/vue-compositions'
+import merge from 'lodash.merge'
+import { computed, MaybeRefOrGetter, toRef, toValue } from 'vue'
 import { useCan, useWorkspaceApi } from '@/compositions'
+import { TaskRunsFilter } from '@/models/Filters'
 import { WorkspaceTaskRunsApi } from '@/services/WorkspaceTaskRunsApi'
+import { Getter } from '@/types/reactivity'
 import { UseEntitySubscription } from '@/types/useEntitySubscription'
 
-export type UseTaskRunsCount = UseEntitySubscription<WorkspaceTaskRunsApi['getTaskRunsCount'], 'taskRunsCount'>
+export type UseTaskRunsCount = UseEntitySubscription<WorkspaceTaskRunsApi['getTaskRunsCount'], 'count'>
 
-export function useTaskRunsCount(flowRunId: string | Ref<string | null | undefined>): UseTaskRunsCount {
+export function useTaskRunsCount(filter: MaybeRefOrGetter<TaskRunsFilter | null | undefined>, options?: SubscriptionOptions): UseTaskRunsCount {
   const api = useWorkspaceApi()
   const can = useCan()
-  const id = ref(flowRunId)
 
-  const tasksCountFilter = computed<Parameters<typeof api.taskRuns.getTaskRunsCount> | null>(() => {
-    if (!id.value) {
-      return null
-    }
-
+  const getter: Getter<[TaskRunsFilter] | null> = () => {
     if (!can.read.task_run) {
       return null
     }
 
-    return [
-      {
-        flowRuns: {
-          id: [id.value],
-        },
-        taskRuns: {
-          subFlowRunsExist: false,
-        },
-      },
-    ]
-  })
+    const filterValue = toValue(filter)
 
-  const subscription = useSubscriptionWithDependencies(api.taskRuns.getTaskRunsCount, tasksCountFilter)
-  const taskRunsCount = computed(() => subscription.response)
+    if (!filterValue) {
+      return null
+    }
+
+    const base: TaskRunsFilter = {
+      taskRuns: {
+        subFlowRunsExist: false,
+      },
+    }
+
+    // merge here is important to track changes to `filter` if it is a reactive
+    const parameter = merge({}, base, filterValue)
+
+    return [parameter]
+  }
+
+  const parameters = toRef(getter)
+  const subscription = useSubscriptionWithDependencies(api.taskRuns.getTaskRunsCount, parameters, options)
+  const count = computed(() => subscription.response)
 
   return {
     subscription,
-    taskRunsCount,
+    count,
   }
 }

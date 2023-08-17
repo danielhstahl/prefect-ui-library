@@ -7,12 +7,14 @@ export const mapWorkspaceDashboardFilterToTaskRunsFilter: MapFunction<WorkspaceD
   const now = new Date()
 
   return {
-    taskRuns: {
-      startTimeAfter: subSeconds(now, source.timeSpanInSeconds),
-      startTimeBefore: now,
+    flowRuns: {
       tags: {
         name: source.tags,
       },
+    },
+    taskRuns: {
+      startTimeAfter: subSeconds(now, source.timeSpanInSeconds),
+      startTimeBefore: now,
     },
   }
 }
@@ -24,6 +26,11 @@ export const mapWorkspaceDashboardFilterToTaskRunsHistoryFilter: MapFunction<Wor
     historyStart: subSeconds(now, source.timeSpanInSeconds),
     historyEnd: now,
     historyIntervalSeconds: source.timeSpanInSeconds / 20,
+    flowRuns: {
+      tags: {
+        name: source.tags,
+      },
+    },
   }
 }
 
@@ -31,8 +38,8 @@ export const mapWorkspaceDashboardFilterToFlowRunsFilter: MapFunction<WorkspaceD
   const now = new Date()
   const filter: FlowRunsFilter = {
     flowRuns: {
-      startTimeAfter: subSeconds(now, source.timeSpanInSeconds),
-      startTimeBefore: now,
+      expectedStartTimeAfter: subSeconds(now, source.timeSpanInSeconds),
+      expectedStartTimeBefore: now,
       tags: {
         name: source.tags,
       },

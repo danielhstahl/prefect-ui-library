@@ -1,5 +1,5 @@
 import { SelectOption } from '@prefecthq/prefect-design'
-import { JsonInput } from '@/index'
+import { JsonInput } from '@/components'
 import { InvalidSchemaValueError } from '@/models/InvalidSchemaValueError'
 import { getSchemaPropertyAttrs, getSchemaPropertyComponentWithDefaultProps, getSchemaPropertyDefaultValidators, schemaPropertyComponentWithProps, SchemaPropertyComponentWithProps } from '@/services/schemas/utilities'
 import { schemaHas, SchemaProperty, SchemaPropertyInputAttrs, SchemaPropertyMeta, SchemaValue } from '@/types/schemas'
@@ -70,17 +70,23 @@ export abstract class SchemaPropertyService {
       }
     }
 
+    try {
+      return this.response(this.default)
+    } catch (error) {
+      if (!(error instanceof InvalidSchemaValueError)) {
+        console.error(error)
+      }
+    }
+
     return this.default
   }
 
   public mapRequestValue(value: SchemaValue): SchemaValue | undefined {
-    const mappedValue = this.request(value)
-
-    if (this.isDefaultValue(mappedValue)) {
+    if (this.isDefaultValue(value)) {
       return undefined
     }
 
-    return mappedValue
+    return this.request(value)
   }
 
   public getDefaultValue(): SchemaValue {

@@ -1,9 +1,7 @@
 <template>
   <p-modal v-model:showModal="internalShowModal" class="parameters-modal" title="Run Deployment">
     <p-form @submit="submit">
-      <p-content>
-        <DeploymentParameters v-model="parameters" :deployment="deployment" />
-      </p-content>
+      <SchemaInput v-model="parameters" :schema="deployment.parameterOpenApiSchema" />
     </p-form>
 
     <template #actions>
@@ -18,10 +16,11 @@
 
 <script lang="ts" setup>
   import { PButton, showToast } from '@prefecthq/prefect-design'
+  import { useValidationObserver } from '@prefecthq/vue-compositions'
   import { useField } from 'vee-validate'
   import { computed, h } from 'vue'
   import { useRouter } from 'vue-router'
-  import { ToastFlowRunCreate, DeploymentParameters } from '@/components'
+  import { ToastFlowRunCreate, SchemaInput } from '@/components'
   import { useWorkspaceApi, useWorkspaceRoutes } from '@/compositions'
   import { useForm } from '@/compositions/useForm'
   import { localization } from '@/localization'
@@ -44,7 +43,7 @@
 
   const { handleSubmit } = useForm<DeploymentFlowRunCreate>({
     initialValues: {
-      parameters: props.deployment.rawParameters,
+      parameters: props.deployment.parameters,
       schema: props.deployment.parameterOpenApiSchema,
     },
   })
@@ -58,7 +57,15 @@
     },
   })
 
+  const { validate } = useValidationObserver()
+
   const submit = handleSubmit(async (values): Promise<void> => {
+    const valid = await validate()
+
+    if (!valid) {
+      return
+    }
+
     const resolvedValues: DeploymentFlowRunCreate = {
       state: {
         type: 'scheduled',

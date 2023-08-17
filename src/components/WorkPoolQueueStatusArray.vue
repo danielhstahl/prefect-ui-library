@@ -18,7 +18,7 @@
   import { useSubscription } from '@prefecthq/vue-compositions'
   import { computed } from 'vue'
   import { WorkPoolQueueStatusIcon } from '@/components'
-  import { useWorkspaceApi } from '@/compositions'
+  import { useInterval, useWorkspaceApi } from '@/compositions'
   import { WorkPool } from '@/models'
 
   const props = defineProps<{
@@ -27,10 +27,12 @@
 
   const maxWorkQueues = 50
   const api = useWorkspaceApi()
+  const options = useInterval()
 
   const workPoolQueuesSubscription = useSubscription(
     api.workPoolQueues.getWorkPoolQueues,
     [props.workPool.name, { limit: maxWorkQueues + 1 }],
+    options,
   )
 
   const workPoolQueues = computed(() => workPoolQueuesSubscription.response ?? [])
@@ -44,6 +46,7 @@
   items-center
   justify-center
   gap-1
+  min-h-[1.5rem]
   max-w-full
 }
 

@@ -1,14 +1,14 @@
 <template>
   <div ref="chart" class="flow-runs-bar-chart" :class="classes.root" :style="styles.root" @mouseleave="close">
-    <template v-for="bar in bars" :key="bar">
+    <template v-for="(flowRun, index) in barFlowRuns" :key="getKey(flowRun, index)">
       <p-pop-over class="flow-runs-bar-chart__bar-container" :to="chart" :placement="placement" :group="group" auto-close>
         <template #target="{ open }">
-          <div class="flow-runs-bar-chart__bar" :class="getBarClasses(bar)" :style="getBarStyles(bar)" @mouseover="open" />
+          <div class="flow-runs-bar-chart__bar" :class="getBarClasses(flowRun)" :style="getBarStyles(flowRun)" @mouseover="open" />
         </template>
 
-        <template v-if="getBarFlowRun(bar)">
+        <template v-if="flowRun">
           <div class="flow-runs-bar-chart__pop-over">
-            <FlowRunPopoverContent :flow-run-id="getBarFlowRun(bar)!.id" />
+            <FlowRunPopoverContent :flow-run-id="flowRun.id" />
           </div>
         </template>
       </p-pop-over>
@@ -18,16 +18,19 @@
 
 <script lang="ts" setup>
   import { ClassValue, toPixels, positions, usePopOverGroup } from '@prefecthq/prefect-design'
-  import { useElementRect } from '@prefecthq/vue-compositions'
+  import { useDebouncedRef, useElementRect } from '@prefecthq/vue-compositions'
   import { scaleSymlog } from 'd3'
-  import { StyleValue, computed, ref } from 'vue'
+  import merge from 'lodash.merge'
+  import { StyleValue, computed, ref, toValue } from 'vue'
   import FlowRunPopoverContent from '@/components/FlowRunPopOverContent.vue'
   import { useFlowRuns } from '@/compositions/useFlowRuns'
+  import { useInterval } from '@/compositions/useInterval'
   import { FlowRunsFilter } from '@/models/Filters'
   import { FlowRun } from '@/models/FlowRun'
+  import { Getter, MaybeGetter } from '@/types/reactivity'
 
   const props = defineProps<{
-    filter: FlowRunsFilter,
+    filter: MaybeGetter<FlowRunsFilter>,
     mini?: boolean,
   }>()
 
@@ -39,6 +42,7 @@
   const chart = ref<HTMLDivElement>()
   const { width, height } = useElementRect(chart)
   const bars = computed(() => Math.floor(width.value / desiredBarWidth.value))
+  const barsDebounced = useDebouncedRef(bars, 1000)
   const styles = computed(() => ({
     root: `grid-template-columns: repeat(${bars.value}, 1fr)`,
   }))
@@ -49,26 +53,24 @@
     },
   }))
 
-  const filter = computed<FlowRunsFilter | null>(() => {
-    if (isNaN(bars.value)) {
+  const filter: Getter<FlowRunsFilter | null> = () => {
+    if (isNaN(barsDebounced.value)) {
       return null
     }
 
+    const base = toValue(props.filter)
     const filter: FlowRunsFilter = {
-      ...props.filter,
-      limit: bars.value,
+      limit: barsDebounced.value,
+      sort: 'START_TIME_DESC',
     }
 
-    return filter
-  })
-  const { flowRuns } = useFlowRuns(filter)
+    return merge({}, base, filter)
+  }
 
-  const barFlowRuns = computed(() => {
-    const difference = bars.value - flowRuns.value.length
-    const emptyValues: undefined[] = new Array(difference)
+  const options = useInterval()
+  const { flowRuns } = useFlowRuns(filter, 1, options)
 
-    return [...emptyValues, ...flowRuns.value]
-  })
+  const barFlowRuns = computed(() => organizeFlowRunsWithGaps(flowRuns.value))
 
   const maxDuration = computed(() => flowRuns.value.reduce((max, flowRun) => {
     if (flowRun.duration > max) {
@@ -87,15 +89,9 @@
     return scale
   })
 
-  function getBarFlowRun(bar: number): FlowRun | undefined {
-    return barFlowRuns.value.at(bar - 1)
-  }
-
-  function getBarClasses(bar: number): ClassValue {
-    const flowRun = getBarFlowRun(bar)
-
+  function getBarClasses(flowRun: FlowRun | null): ClassValue {
     if (!flowRun) {
-      return ''
+      return undefined
     }
 
     return [
@@ -104,9 +100,7 @@
     ]
   }
 
-  function getBarStyles(bar: number): StyleValue {
-    const flowRun = getBarFlowRun(bar)
-
+  function getBarStyles(flowRun: FlowRun | null): StyleValue {
     if (!flowRun) {
       return ''
     }
@@ -114,6 +108,57 @@
     return {
       height: toPixels(yScale.value(flowRun.duration)),
     }
+  }
+
+  function getKey(flowRun: FlowRun | null, index: number): string {
+    if (!flowRun) {
+      return `${index}`
+    }
+
+    return flowRun.id
+  }
+
+  function organizeFlowRunsWithGaps(flowRuns: FlowRun[]): (FlowRun | null)[] {
+    const { expectedStartTimeAfter, expectedStartTimeBefore } = toValue(props.filter).flowRuns ?? {}
+
+    if (!expectedStartTimeBefore || !expectedStartTimeAfter) {
+      return []
+    }
+
+    const totalTime = expectedStartTimeBefore.getTime() - expectedStartTimeAfter.getTime()
+    const bucketSize = totalTime / bars.value
+    const buckets: (FlowRun | null)[] = new Array(bars.value).fill(null)
+
+    function getEmptyBucket(index: number): number | null {
+      if (index < 0) {
+        return null
+      }
+
+      if (buckets[index]) {
+        return getEmptyBucket(index - 1)
+      }
+
+      return index
+    }
+
+    flowRuns.forEach((flowRun) => {
+      const startTime = flowRun.startTime ?? flowRun.expectedStartTime
+
+      if (!startTime) {
+        return
+      }
+
+      const bucketIndex = Math.floor((startTime.getTime() - expectedStartTimeAfter.getTime()) / bucketSize)
+      const emptyBucketIndex = getEmptyBucket(bucketIndex)
+
+      if (emptyBucketIndex === null) {
+        return
+      }
+
+      buckets[emptyBucketIndex] = flowRun
+    })
+
+    return buckets
   }
 </script>
 
